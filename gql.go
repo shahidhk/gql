@@ -6,56 +6,59 @@ import (
 	"net/http"
 )
 
-// GQLRequest is the GraphQL request containing Query and Variables
-type GQLRequest struct {
+// Request is the GraphQL request containing Query and Variables
+type Request struct {
 	Query     string                 `json:"query"`
 	Variables map[string]interface{} `json:"variables"`
 }
 
-// GQLResponse is the response from GraphQL server
-type GQLResponse struct {
+// Response is the response from GraphQL server
+type Response struct {
 	Data   *json.RawMessage `json:"data"`
 	Errors *json.RawMessage `json:"errors"`
 }
 
-// GQLError is a the GraphQL error from server
-type GQLError struct {
-	Message   string             `json:"message"`
-	Locations []GQLErrorLocation `json:"locations"`
-	Type      string             `json:"type"`
-	Path      []interface{}      `json:"path"`
+// Error is a the GraphQL error from server
+type Error struct {
+	Message   string          `json:"message"`
+	Locations []ErrorLocation `json:"locations"`
+	Type      string          `json:"type"`
+	Path      []interface{}   `json:"path"`
 }
 
+// Errors are an array of GraphQL errors
+type Errors []Error
+
 // Error returns the error message
-func (e GQLError) Error() string {
+func (e Error) Error() string {
 	return e.Message
 }
 
-// GQLErrorLocation is the location of error in the query string
-type GQLErrorLocation struct {
+// ErrorLocation is the location of error in the query string
+type ErrorLocation struct {
 	Line   int `json:"line"`
 	Column int `json:"column"`
 }
 
-// GQLClient can execute GraphQL queries against an endpoint
-type GQLClient struct {
+// Client can execute GraphQL queries against an endpoint
+type Client struct {
 	Endpoint string
 	Headers  map[string]string
 	client   *http.Client
 }
 
-// NewGQLClient returns a GQLClient for given endpoint and headers
-func NewGQLClient(endpoint string, headers map[string]string) *GQLClient {
-	return &GQLClient{
+// NewClient returns a Client for given endpoint and headers
+func NewClient(endpoint string, headers map[string]string) *Client {
+	return &Client{
 		Endpoint: endpoint,
 		Headers:  headers,
 		client:   &http.Client{},
 	}
 }
 
-// Execute executes the GQLRequest r using the GQLClient c and returns an error
+// Execute executes the Request r using the Client c and returns an error
 // Response data and errors can be unmarshalled to the passed interfaces
-func (c *GQLClient) Execute(r GQLRequest, data interface{}, errors interface{}) error {
+func (c *Client) Execute(r Request, data interface{}, errors interface{}) error {
 	payload, err := json.Marshal(r)
 	if err != nil {
 		return err
@@ -73,16 +76,19 @@ func (c *GQLClient) Execute(r GQLRequest, data interface{}, errors interface{}) 
 	}
 	defer res.Body.Close()
 
-	var response GQLResponse
+	var response Response
 	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
 		return err
 	}
 
-	err = json.Unmarshal(*response.Data, data)
-	if err != nil {
-		return err
+	if response.Data != nil {
+		err = json.Unmarshal(*response.Data, data)
+		if err != nil {
+			return err
+		}
 	}
+
 	if response.Errors != nil {
 		err = json.Unmarshal(*response.Errors, errors)
 		if err != nil {

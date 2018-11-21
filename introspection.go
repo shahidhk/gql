@@ -1,28 +1,32 @@
 package gql
 
-const IntrospectionQuery = `
+// IntrospectionQuery is the GraphQL query to introspect a server.
+const IntrospectionQuery string = `
   query IntrospectionQuery {
     __schema {
-      queryType { name }
-      mutationType { name }
-      subscriptionType { name }
+      queryType {
+        name
+      }
+      mutationType {
+        name
+      }
+      subscriptionType {
+        name
+      }
       types {
         ...FullType
       }
       directives {
         name
         description
-		locations
+        locations
         args {
           ...InputValue
         }
-        # deprecated, but included for coverage till removed
-		onOperation
-        onFragment
-        onField
       }
     }
   }
+  
   fragment FullType on __Type {
     kind
     name
@@ -55,12 +59,16 @@ const IntrospectionQuery = `
       ...TypeRef
     }
   }
+  
   fragment InputValue on __InputValue {
     name
     description
-    type { ...TypeRef }
+    type {
+      ...TypeRef
+    }
     defaultValue
   }
+  
   fragment TypeRef on __Type {
     kind
     name
